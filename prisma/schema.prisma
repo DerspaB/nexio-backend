@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  COACH
+  CLIENT
+}
+
+enum PlanStatus {
+  TEMPLATE
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum CheckInStatus {
+  COMPLETED
+  PARTIAL
+  SKIPPED
+}
+
+enum BlockType {
+  EXERCISE
+  SUPERSET
+  REST
+  NOTE
+}
+
+enum AchievementType {
+  STREAK_7
+  STREAK_30
+  FIRST_CHECKIN
+  PERFECT_WEEK
+}
+
+model Organization {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users     User[]
+  clients   Client[]
+  exercises Exercise[]
+  plans         Plan[]
+  conversations Conversation[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           Role
+  isActive       Boolean      @default(true)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  clientProfile  Client?
+  coachedClients Client[]     @relation("CoachClients")
+  createdPlans               Plan[]                      @relation("PlanCreator")
+  conversationParticipants   ConversationParticipant[]
+  sentMessages               Message[]
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Client {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  coachId        String
+  coach          User         @relation("CoachClients", fields: [coachId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  status         String       @default("ACTIVE")
+  currentStreak  Int          @default(0)
+  adherenceRate  Int          @default(0)
+  tags           String[]     @default([])
+  notes          String?
+  plans          Plan[]
+  checkIns       CheckIn[]
+  achievements   Achievement[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([coachId])
+  @@map("clients")
+}
+
+model Exercise {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  muscleGroup    String
+  equipment      String?
+  videoUrl       String?
+  thumbnailUrl   String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  workoutBlocks  WorkoutBlock[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([muscleGroup])
+  @@map("exercises")
+}
+
+model Plan {
+  id             String       @id @default(uuid())
+  name           String
+  description    String?
+  isTemplate     Boolean      @default(false)
+  status         PlanStatus   @default(TEMPLATE)
+  durationWeeks  Int
+  clientId       String?
+  client         Client?      @relation(fields: [clientId], references: [id])
+  createdById    String
+  createdBy      User         @relation("PlanCreator", fields: [createdById], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  workoutDays    WorkoutDay[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([createdById])
+  @@map("plans")
+}
+
+model WorkoutDay {
+  id            String         @id @default(uuid())
+  planId        String
+  plan          Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayOfWeek     Int
+  name          String
+  order         Int
+  workoutBlocks WorkoutBlock[]
+  checkIns      CheckIn[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([planId])
+  @@map("workout_days")
+}
+
+model WorkoutBlock {
+  id            String      @id @default(uuid())
+  workoutDayId  String
+  workoutDay    WorkoutDay  @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  type          BlockType   @default(EXERCISE)
+  exerciseId    String?
+  exercise      Exercise?   @relation(fields: [exerciseId], references: [id])
+  order         Int
+  sets          Int         @default(0)
+  reps          String      @default("")
+  restSeconds   Int         @default(0)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([workoutDayId])
+  @@index([exerciseId])
+  @@map("workout_blocks")
+}
+
+model CheckIn {
+  id              String        @id @default(uuid())
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  date            DateTime      @db.Date
+  status          CheckInStatus
+  workoutDayId    String?
+  workoutDay      WorkoutDay?   @relation(fields: [workoutDayId], references: [id])
+  completedBlocks Int
+  totalBlocks     Int
+  notes           String?
+  durationMinutes Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId])
+  @@index([date])
+  @@map("check_ins")
+}
+
+model Achievement {
+  id        String          @id @default(uuid())
+  clientId  String
+  client    Client          @relation(fields: [clientId], references: [id])
+  type      AchievementType
+  earnedAt  DateTime        @default(now())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([clientId, type])
+  @@index([clientId])
+  @@map("achievements")
+}
+
+model Conversation {
+  id             String                    @id @default(uuid())
+  organizationId String
+  organization   Organization              @relation(fields: [organizationId], references: [id])
+  participants   ConversationParticipant[]
+  messages       Message[]
+  lastMessageAt  DateTime?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([organizationId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  unreadCount    Int          @default(0)
+  lastReadAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+  type           String       @default("TEXT")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
