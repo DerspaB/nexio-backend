@@ -1,13 +1,17 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, RegisterDto } from './dto';
+import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +20,8 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private mailerService: MailerService,
+    private configService: ConfigService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -97,6 +103,77 @@ export class AuthService {
         organizationId: user.organizationId,
       },
     };
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = await bcrypt.hash(rawToken, 10);
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: hashedToken,
+          passwordResetExpires: new Date(Date.now() + 3600000),
+        },
+      });
+
+      const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+      const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: 'Recuperar contraseña — Nexio',
+        template: 'reset-password',
+        context: { resetUrl },
+      });
+
+      this.logger.log(`Password reset email sent to ${user.email}`);
+    }
+
+    return { message: 'Si el email existe, recibirás un correo con instrucciones.' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const candidates = await this.prisma.user.findMany({
+      where: {
+        passwordResetExpires: { gt: new Date() },
+        passwordResetToken: { not: null },
+      },
+    });
+
+    let matchedUser: (typeof candidates)[0] | null = null;
+
+    for (const candidate of candidates) {
+      const isMatch = await bcrypt.compare(dto.token, candidate.passwordResetToken!);
+      if (isMatch) {
+        matchedUser = candidate;
+        break;
+      }
+    }
+
+    if (!matchedUser) {
+      throw new BadRequestException('Token inválido o expirado');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    await this.prisma.user.update({
+      where: { id: matchedUser.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
+
+    this.logger.log(`Password reset successfully for ${matchedUser.email}`);
+
+    return { message: 'Contraseña actualizada exitosamente.' };
   }
 
   private generateToken(userId: string, email: string): string {

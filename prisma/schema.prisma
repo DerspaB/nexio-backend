@@ -71,6 +71,8 @@ model User {
   createdPlans               Plan[]                      @relation("PlanCreator")
   conversationParticipants   ConversationParticipant[]
   sentMessages               Message[]
+  passwordResetToken         String?                     @unique
+  passwordResetExpires       DateTime?
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
 

@@ -12,12 +12,14 @@ import { TodayModule } from './today/today.module';
 import { UsersModule } from './users/users.module';
 import { WorkoutBlocksModule } from './workout-blocks/workout-blocks.module';
 import { WorkoutDaysModule } from './workout-days/workout-days.module';
+import { MailerModule } from './mailer/mailer.module';
 import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    MailerModule,
     AuthModule,
     UsersModule,
     ClientsModule,

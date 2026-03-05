@@ -17,29 +17,30 @@ export class MessagingService {
   async getConversations(userId: string, organizationId: string) {
     const conversations = await this.repository.findConversationsByUserId(userId, organizationId);
 
-    const data = conversations.map((conv) => {
+    return conversations.map((conv) => {
       const currentParticipant = conv.participants.find((p) => p.userId === userId);
-      const otherParticipant = conv.participants.find((p) => p.userId !== userId);
       const lastMessage = conv.messages[0] || null;
 
       return {
         id: conv.id,
-        participant: otherParticipant?.user || null,
+        organizationId: conv.organizationId,
+        lastMessageAt: conv.lastMessageAt,
+        participants: conv.participants,
         lastMessage: lastMessage
           ? {
-              content: lastMessage.content,
-              createdAt: lastMessage.createdAt,
+              id: lastMessage.id,
+              conversationId: lastMessage.conversationId,
               senderId: lastMessage.senderId,
               sender: lastMessage.sender,
+              content: lastMessage.content,
+              type: lastMessage.type,
+              createdAt: lastMessage.createdAt,
             }
           : null,
         unreadCount: currentParticipant?.unreadCount ?? 0,
-        lastMessageAt: conv.lastMessageAt,
         createdAt: conv.createdAt,
       };
     });
-
-    return { data, total: data.length };
   }
 
   async getMessages(conversationId: string, userId: string, query: MessageQueryDto) {
