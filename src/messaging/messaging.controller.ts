@@ -6,8 +6,10 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
 import {
   CreateConversationDto,
   CreateConversationSchema,
@@ -19,6 +21,7 @@ import {
 import { MessagingService } from './messaging.service';
 
 @Controller('conversations')
+@UseGuards(RolesGuard)
 export class MessagingController {
   constructor(private service: MessagingService) {}
 

@@ -4,14 +4,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import { CreateWorkoutDayDto, UpdateWorkoutDayDto } from './dto';
 import { WorkoutDaysRepository } from './workout-days.repository';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class WorkoutDaysService {

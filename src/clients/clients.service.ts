@@ -6,14 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import { ClientQueryDto, CreateClientDto, UpdateClientDto } from './dto';
 import { ClientsRepository } from './clients.repository';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class ClientsService {

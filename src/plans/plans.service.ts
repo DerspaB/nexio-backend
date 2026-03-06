@@ -4,14 +4,9 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import { CreatePlanDto, PlanQueryDto, UpdatePlanDto } from './dto';
 import { PlansRepository } from './plans.repository';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class PlansService {

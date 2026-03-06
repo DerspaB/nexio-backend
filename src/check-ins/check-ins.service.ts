@@ -4,15 +4,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CheckInQueryDto, CreateCheckInDto } from './dto';
 import { CheckInsRepository } from './check-ins.repository';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class CheckInsService {

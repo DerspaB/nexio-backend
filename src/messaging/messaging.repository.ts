@@ -187,12 +187,4 @@ export class MessagingRepository {
     });
     return !!participant;
   }
-
-  async getParticipantUnreadCount(conversationId: string, userId: string): Promise<number> {
-    const participant = await this.prisma.conversationParticipant.findUnique({
-      where: { conversationId_userId: { conversationId, userId } },
-      select: { unreadCount: true },
-    });
-    return participant?.unreadCount ?? 0;
-  }
 }

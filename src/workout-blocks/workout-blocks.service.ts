@@ -4,18 +4,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import {
   CreateWorkoutBlockDto,
   ReorderBlocksDto,
   UpdateWorkoutBlockDto,
 } from './dto';
 import { WorkoutBlocksRepository } from './workout-blocks.repository';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class WorkoutBlocksService {

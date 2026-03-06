@@ -1,18 +1,16 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { AuthUser } from '../common/interfaces/auth-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
-
-interface AuthUser {
-  id: string;
-  role: string;
-  organizationId: string;
-}
 
 @Injectable()
 export class TodayService {
+  private readonly logger = new Logger(TodayService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async getTodayForClient(clientId: string, user: AuthUser) {

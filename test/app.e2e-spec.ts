@@ -4,22 +4,33 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('POST /api/auth/login with invalid credentials should return 401', () => {
     return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .post('/api/auth/login')
+      .send({ email: 'invalid@test.com', password: 'wrong' })
+      .expect(401);
+  });
+
+  it('GET /api/users without token should return 401', () => {
+    return request(app.getHttpServer())
+      .get('/api/users')
+      .expect(401);
   });
 });

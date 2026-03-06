@@ -135,7 +135,7 @@ export class AuthService {
       this.logger.log(`Password reset email sent to ${user.email}`);
     }
 
-    return { message: 'Si el email existe, recibirás un correo con instrucciones.' };
+    return { message: 'If the email exists, you will receive a reset link.' };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -157,7 +157,7 @@ export class AuthService {
     }
 
     if (!matchedUser) {
-      throw new BadRequestException('Token inválido o expirado');
+      throw new BadRequestException('Invalid or expired token');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
@@ -173,7 +173,7 @@ export class AuthService {
 
     this.logger.log(`Password reset successfully for ${matchedUser.email}`);
 
-    return { message: 'Contraseña actualizada exitosamente.' };
+    return { message: 'Password updated successfully.' };
   }
 
   private generateToken(userId: string, email: string): string {
